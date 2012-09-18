@@ -1,0 +1,14 @@
+*.*~
+.lein-deps-sum
+Excerpt_from_Using_Functional_Parsing.png
+Parseathon.aux
+Parseathon.log
+Parseathon.nav
+Parseathon.out
+Parseathon.pdf
+Parseathon.snm
+Parseathon.synctex.gz
+Parseathon.toc
+Parseathon.vrb
+classes/
+lib/

@@ -1,0 +1,197 @@
+\documentclass[presentation]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{acronym}
+\usepackage{minted}
+
+% From http://www.mackichan.com/index.html?techtalk/564.htm~mainFrame
+\setlength{\parindent}{0in} % remove indentation after first paragraph in a section
+\setlength{\parskip}{10pt plus 1pt minus 1pt} % space between paragraphs
+
+\begin{document}
+
+\title{Monadic Parser Combinators in Clojure with fnparse}
+\author{John Poplett\\
+  \texttt{john.poplett@acm.org}}
+\date{\today}
+
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+
+  You have a choice to make: to parse or not to parse. How do you
+  decide? After you decide, then what?
+
+\begin{itemize}
+\item Monadic Parsing in Clojure
+\item Introduction to fnparse
+\item EBNF Examples Rendered in fnparse
+\item Framework for a parser project
+\item Parser Results
+\item Example htmltemplate
+\item Example: Protobuf
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Data Interchange Formats}
+
+  Libraries exist for Clojure that can parse and generate data
+  representations in well-defined data interchange formats such as
+  XML, JSON and others.
+
+  If you're use cases are met by a standard data-interchange format,
+  you can simply use an existing DIF parser and avoid the time and
+  expense of authoring your own.
+
+\end{frame}
+
+\begin{frame}{Parser Combinators}
+
+  Parser combinators describe a class of parsers that are well-suited
+  to functional languages. As the name implies, parser combinators are
+  parsers made up of other parsers.
+
+  Parser combinators are recursive-descent parsers of the class ll(*).
+
+  Parser combinators include parsers for literals, sequences and
+  alternatives.
+
+\end{frame}
+
+\begin{frame}{The Joy of Parser Combinators}
+\includegraphics{Excerpt_from_Using_Functional_Parsing.png}
+\end{frame}
+
+\begin{frame}{Why Parser Combinators?}
+
+  Parser combinators are written using standard language functions. As
+  noted in the article ``The Magic Behind Parser Combinators''\cite{Spiewak}
+
+\begin{quotation}
+  What's more, we can do this in a very declarative fashion.  Thanks
+  to the magic of DSLs, our sources will actually look like a
+  plain-Jane context-free grammar for our language.  This means that
+  we get most of the benefits of a hand-written parser without losing
+  the maintainability afforded by parser generators like bison.
+\end{quotation}
+\end{frame}
+
+%
+% fragile key word required to use minted in beamer frames
+% See http://code.google.com/p/minted/issues/detail?id=40
+%
+\begin{frame}[fragile]{Phone Number \ac{BNF}}
+\begin{minted}{sh}
+digit = ``0'', ``1'', ``2'', ``3'', ``4'', ``5'',
+	    ``6'', ``7'', ``8'', ``9'' ;
+areacode = ``('' 3*digit ``)'' ;
+exchange = 3*digit;
+suffix = 4*digit;
+telno = areacode space exchange ``-'' suffix;
+\end{minted}
+\end{frame}
+
+
+\begin{frame}[fragile]{Digit Parser}
+\begin{minted}{clojure}
+(def
+  #^{:doc "Defines a parser that succeeds when
+     the input matches a single digit."}
+  digit (lit-alt-seq "0123456789"))
+
+(defmacro ndigits
+  "Creates a parser for the specified number of digits. The
+  parser returns a string of the matching digits on success."
+  [n] `(semantics (rep= ~n digit) #(apply str %)))
+\end{minted}
+\end{frame}
+
+
+\begin{frame}[fragile]{Phone Number Parser}
+\begin{minted}{clojure}
+(defstruct telno-s :areacode :exchange :suffix)
+
+(def areacode (complex [_ (lit \()
+				      result (ndigits 3)
+				      _ (lit \))]
+				    result))
+
+(def exchange (ndigits 3))
+(def suffix (ndigits 4))
+
+(def telno
+  (complex [areacode areacode
+	    _ (lit \space)
+	    exchange exchange
+	    _ (lit \-)
+	    suffix suffix]
+	   (struct telno-s areacode exchange suffix)))
+\end{minted}
+\end{frame}
+
+\begin{frame}{What are Monads?}
+
+  In the context of functional programming, monads are a cohesive
+  realization of the following three abstractions:
+
+  \begin{itemize}
+
+\item m-bind
+\item m-result
+\item m-value
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{What are Monadic Parser Combinators?}
+
+Why parser combinators that use monads, of course!
+
+\end{frame}
+
+\begin{frame}{Miscellaneous}
+
+  \ac{AST}s
+  \ac{BNF}
+
+\end{frame}
+
+\begin{frame}{References}
+
+\begin{thebibliography}{9}
+
+\bibitem{Spiewak} Daniel Spiewak,
+\href{http://www.codecommit.com/blog/scala/the-magic-behind-parser-combinators}{\emph{The
+Magic Behind Parser Combinators}}, www.codecommit.com (2009).
+
+\bibitem{Duey} Jim Duey,
+\href{http://www.intensivesystems.net/tutorials/monads_101.html}{\emph{Monads in Clojure}},
+www.intensivesystems.com (2009).
+
+\bibitem{Meijer} Graham Hutton \& Erik Meijer, \emph{Monadic Parser Combinators}, University
+of Nottingham (1996).
+
+\bibitem{lpn} Shaopeng Jia,
+\href{https://docs.google.com/present/view?id=0Ae6JSEqM3Qz6ZDk0bmd3d18yODRmejZ2N21kdw}{\emph{libphonenumber:
+    A Deeper Look}}, Google (2010).
+
+\bibitem{Simpson} H. Simpson, \emph{Proof of the Riemann
+Hypothesis},  preprint (2003), available at
+\url{http://www.math.drofnats.edu/riemann.ps}.
+
+\end{thebibliography}
+
+\end{frame}
+
+\begin{frame}{Acronyms}
+  \begin{acronym}[BNF]
+  \acro{AST}{Abstract syntax tree}
+  \acro{BNF}{Backus-Naur Form}
+  \acro{DSL}{Domain specific language}
+  \end{acronym}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,72 @@
+#+TITLE: Parseathon Talk Notes
+#+AUTHOR: John H. Poplett
+#+EMAIL: john.poplett@acm.org
+
+* Introduction
+
+The best part about this talk is it's name. Hopefully, you like it. If
+you don't like it, I suggest you leave now because it's all downhill
+from here.
+
+fnparse, is a library for writing parsers in Clojure. The library
+belongs to the class of parsing techniques known as parser combinators.
+
+The goal of my talk today is to introduce you to fnparse (and
+indirectly to parser combinators), show you how to use fnparse and
+then spend some time working with it interactively to get in a little
+"kinetic" learning.
+
+For this last piece, I've prepared some sample code and a simple
+framework for us to use. The code is on github. You can find it
+<TBD: here>
+
+* Monadic Parsing in Clojure
+fnparse is built on monads, particularly for the capabilities of
+maintaining state and backtracking.
+
+Parser combinators and monadic construction go hand in hand. Parser
+combinators inherit their power from monads, particularly from the
+ability to create larger constructs from smaller building blocks.
+
+* Parser Combinators
+The name parser combinators has an interesting connotation: larger
+parsers are built up from smaller parsers. Thus, parsers are built
+from a few parser primitives into more powerful parsers and ultimately
+a parser that represents a whole language or grammar.
+
+Parser combinators build recursive descent or "top-down" parsers. As
+the name implies, they start from the top, i.e. the rule that defines
+a program (or whatever the highest level of meaning happens to be) and
+work down through its component parts.
+
+* The Joy of Parser Combinators
+Parser combinators are attractive for functional programmers in part
+because they leverage monads and thus are a natural for the language.
+
+The joy of parser combinators stems from their ability to allow a
+programmer to define in his / her native language of choice a parser
+that closely resembles a formal grammar. This is really then a form of
+declarative programming or more succinctly, "nirvana". If you're
+looking for a programmer's high, this is one way to get one.
+
+* Introduction to fnparse
+fnparse was written by Joshua Choi. A valuable text for understanding
+the library is written by <TBD: Neil Diamond>, called <TBD>. If this
+talk piques your interest in fnparse, read <TBD: Neal Diamond>'s
+article and also study, as he suggest's, the JSON parser example
+provided with fnparse.
+
+Joshua Choi has apparently vanished and is in any case no longer
+actively maintaining fnparse. The original source on github is not
+compatibile with 1.3. Fortunately, since the source is on github, I
+forked the source and updated it to work with 1.3 and 1.4.
+
+* Taste of fnparse
+* EBNF Examples Rendered in fnparse
+* Framework for a parser project
+* Parser Results
+* Example: htmltemplate
+* Example: Protobuf
+* Resources
++ Monadic Parsing
++ The Magic Behind Parser Combinators

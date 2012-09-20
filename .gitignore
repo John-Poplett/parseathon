@@ -1,5 +1,6 @@
 *.*~
 .lein-deps-sum
+parseathon*.jar
 Excerpt_from_Using_Functional_Parsing.png
 Parseathon.aux
 Parseathon.log

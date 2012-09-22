@@ -21,3 +21,19 @@
             _ (lit \-)
             suffix suffix]
            (struct telno-s areacode exchange suffix)))
+
+
+;; (defn parse-tmpl-var [data]
+;;   (let [result (re-find (re-pattern "^<!--\\s+TMPL_VAR\\s+([a-z][a-z0-9]*)\\s+-->") data)]
+;;     (if result
+;;       [ [ :tmpl-var (keyword (second result)) ], (subs data (count (first result))) ]
+;;       nil)))
+
+(defn telno-regex [input]
+  (let [result (re-find (re-pattern "\\((\\d\\d\\d)\\) (\\d{3,3})-(\\d{4,4})") input)]
+    (if result
+      (let [areacode (nth result 1)
+            exchange (nth result 2)
+            suffix (nth result 3)]
+        (struct telno-s areacode exchange suffix))
+      nil)))

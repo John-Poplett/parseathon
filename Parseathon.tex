@@ -10,7 +10,8 @@
 
 \begin{document}
 
-\title{Monadic Parser Combinators in Clojure with fnparse}
+% \title{Monadic Parser Combinators in Clojure with fnparse}
+\title{Parseathon: The Joy of Parser Combinators}
 \author{John Poplett\\
   \texttt{john.poplett@acm.org}}
 \date{\today}
@@ -19,32 +20,36 @@
 \titlepage
 \end{frame}
 
-\begin{frame}{Overview}
+\begin{frame}{Introduction}
+ The best part about this talk is it's name. Hopefully, you like it. If
+you don't like it, you may want to leave now because it's all downhill
+from here.
 
-  You have a choice to make: to parse or not to parse. How do you
-  decide? After you decide, then what?
+fnparse, is a library for writing parsers in Clojure. The library
+belongs to the class of parsing techniques known as parser combinators.
 
-\begin{itemize}
-\item Monadic Parsing in Clojure
-\item Introduction to fnparse
-\item EBNF Examples Rendered in fnparse
-\item Framework for a parser project
-\item Parser Results
-\item Example htmltemplate
-\item Example: Protobuf
-\end{itemize}
-
+The goal of my talk today is to introduce you to fnparse (and
+indirectly to parser combinators), show you how to use fnparse and
+then spend some time working with it interactively to get in a little
+"kinetic" learning.
 \end{frame}
 
-\begin{frame}{Data Interchange Formats}
+\begin{frame}{Agenda}
 
-  Libraries exist for Clojure that can parse and generate data
-  representations in well-defined data interchange formats such as
-  XML, JSON and others.
-
-  If you're use cases are met by a standard data-interchange format,
-  you can simply use an existing DIF parser and avoid the time and
-  expense of authoring your own.
+\begin{itemize}
+\item Why parser combinators?
+\item Parsing digits
+\item Parsing telephone numbers
+\item Introduction to fnparse
+\item Look at some fnparse function parsers
+\item REPL playtime: executing simple parsers
+\item Recursive example with Protobuf
+\item REPL playtime
+\item Error handling with fnparse
+\item Parser output
+\item Example: htmltemplate
+\item REPL playtime
+\end{itemize}
 
 \end{frame}
 
@@ -52,20 +57,41 @@
 
   Parser combinators describe a class of parsers that are well-suited
   to functional languages. As the name implies, parser combinators are
-  parsers made up of other parsers.
+  parsers made up of other parsers that also happen to be functions.
 
-  Parser combinators are recursive-descent parsers of the class ll(*).
+  Parser combinators result in recursive-descent parsers, top-down
+  parsers of the class \href{http://en.wikipedia.org/wiki/LL_parser}{LL}(*).
 
-  Parser combinators include parsers for literals, sequences and
-  alternatives.
+  Parser combinator libaries generally include primitive parsers for
+  literals, sequences and alternatives.
 
 \end{frame}
 
 \begin{frame}{The Joy of Parser Combinators}
-\includegraphics{Excerpt_from_Using_Functional_Parsing.png}
+\begin{quotation}
+A functional parser can be built using basic parsers for the terminal
+symbols, and non basic parser for the non-terminal symbols of a
+grammar. To create the latter, so-called parser combinators -
+implemented as higher-order functions - are used. It turns out that by
+using the functional parsing approach, large parts of the parser can
+in fact be generated automatically.
+\end{quotation}
 \end{frame}
 
-\begin{frame}{Why Parser Combinators?}
+\begin{frame}{The Joy of Parser Combinators}
+\begin{quotation}
+ The resulting functional parser has some very useful features which
+make it ideal for use in the software maintenance environment. The
+most important one is that the parser is incremental in its nature,
+which means that we automatically obtain a parser for every single
+production of the underlying grammar in EBNF. Moreover, due to this
+one-to-one correspondence between the parser and the EBNF productions,
+there is a very clean and consistent way to use the parser as a
+front-end for tools to be developed on top of it.\cite{Baumann}
+\end{quotation}
+\end{frame}
+
+\begin{frame}{More Joy}
 
   Parser combinators are written using standard language functions. As
   noted in the article ``The Magic Behind Parser Combinators''\cite{Spiewak}
@@ -79,21 +105,34 @@
 \end{quotation}
 \end{frame}
 
+\begin{frame}{Introduction to fnparse}
+  fnparse was written by Joshua Choi. A valuable text for
+  understanding the library is written by Andrew Breihaut called
+  \emph{Start Parsing in Clojure: fnparse} \cite{Breihaut}.  If this
+  talk piques your interest in fnparse, read the article and also
+  study, as he suggest's, the JSON parser example provided with
+  fnparse.
+
+  Joshua Choi the original author of fnparse no longer maintains it
+  and was written with Clojure 1.2. I have created a fork of the
+  original source on github and updated it for compatibility with 1.3
+  and 1.4.
+\end{frame}
+
 %
 % fragile key word required to use minted in beamer frames
 % See http://code.google.com/p/minted/issues/detail?id=40
 %
-\begin{frame}[fragile]{Phone Number \ac{BNF}}
+\begin{frame}[fragile]{Phone Number \ac{EBNF}}
 \begin{minted}{sh}
 digit = ``0'', ``1'', ``2'', ``3'', ``4'', ``5'',
-	    ``6'', ``7'', ``8'', ``9'' ;
+            ``6'', ``7'', ``8'', ``9'' ;
 areacode = ``('' 3*digit ``)'' ;
 exchange = 3*digit;
 suffix = 4*digit;
 telno = areacode space exchange ``-'' suffix;
 \end{minted}
 \end{frame}
-
 
 \begin{frame}[fragile]{Digit Parser}
 \begin{minted}{clojure}
@@ -109,26 +148,39 @@ telno = areacode space exchange ``-'' suffix;
 \end{minted}
 \end{frame}
 
-
 \begin{frame}[fragile]{Phone Number Parser}
 \begin{minted}{clojure}
 (defstruct telno-s :areacode :exchange :suffix)
 
 (def areacode (complex [_ (lit \()
-				      result (ndigits 3)
-				      _ (lit \))]
-				    result))
+                                      result (ndigits 3)
+                                      _ (lit \))]
+                                    result))
 
 (def exchange (ndigits 3))
 (def suffix (ndigits 4))
 
 (def telno
   (complex [areacode areacode
-	    _ (lit \space)
-	    exchange exchange
-	    _ (lit \-)
-	    suffix suffix]
-	   (struct telno-s areacode exchange suffix)))
+            _ (lit \space)
+            exchange exchange
+            _ (lit \-)
+            suffix suffix]
+           (struct telno-s areacode exchange suffix)))
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{What about Regular Expressions?}
+
+\begin{minted}{clojure}
+(defn telno-regex [input]
+  (let [result (re-find (re-pattern "\\((\\d\\d\\d)\\) (\\d{3,3})-(\\d{4,4})") input)]
+    (if result
+      (let [areacode (nth result 1)
+            exchange (nth result 2)
+            suffix (nth result 3)]
+        (struct telno-s areacode exchange suffix))
+      nil)))
 \end{minted}
 \end{frame}
 
@@ -162,6 +214,15 @@ Why parser combinators that use monads, of course!
 \begin{frame}{References}
 
 \begin{thebibliography}{9}
+
+\bibitem{Breihaut} Andrew Breihaut,
+\href{http://brehaut.net/blog/2011/fnparse_introduction}{\emph{Start
+    Parsing in Clojure: fnparse}}. February 2011.
+
+\bibitem{Baumann} Peter Baumann et al,
+\emph{Using Functional Parsing to Achieve Quality in Software
+  Maintenance},
+Institute fur Informatik der Universitat Zurich.
 
 \bibitem{Spiewak} Daniel Spiewak,
 \href{http://www.codecommit.com/blog/scala/the-magic-behind-parser-combinators}{\emph{The

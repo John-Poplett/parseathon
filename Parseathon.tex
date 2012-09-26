@@ -3,6 +3,7 @@
 \usepackage{hyperref}
 \usepackage{acronym}
 \usepackage{minted}
+\usepackage{tabularx}
 
 % From http://www.mackichan.com/index.html?techtalk/564.htm~mainFrame
 \setlength{\parindent}{0in} % remove indentation after first paragraph in a section
@@ -64,25 +65,25 @@ then spend some time working with it interactively.
 
 \begin{frame}{The Joy of Parser Combinators}
 \begin{quotation}
-A functional parser can be built using basic parsers for the terminal
-symbols, and non basic parser for the non-terminal symbols of a
-grammar. To create the latter, so-called parser combinators -
-implemented as higher-order functions - are used. It turns out that by
-using the functional parsing approach, large parts of the parser can
-in fact be generated automatically.
+ A functional parser can be built using basic parsers for the terminal
+ symbols, and non basic parser for the non-terminal symbols of a
+ grammar. To create the latter, so-called parser combinators -
+ implemented as higher-order functions - are used. It turns out that by
+ using the functional parsing approach, large parts of the parser can
+ in fact be generated automatically.
 \end{quotation}
 \end{frame}
 
 \begin{frame}{The Joy of Parser Combinators}
 \begin{quotation}
  The resulting functional parser has some very useful features which
-make it ideal for use in the software maintenance environment. The
-most important one is that the parser is incremental in its nature,
-which means that we automatically obtain a parser for every single
-production of the underlying grammar in EBNF. Moreover, due to this
-one-to-one correspondence between the parser and the EBNF productions,
-there is a very clean and consistent way to use the parser as a
-front-end for tools to be developed on top of it.\cite{Baumann}
+ make it ideal for use in the software maintenance environment. The
+ most important one is that the parser is incremental in its nature,
+ which means that we automatically obtain a parser for every single
+ production of the underlying grammar in EBNF. Moreover, due to this
+ one-to-one correspondence between the parser and the EBNF productions,
+ there is a very clean and consistent way to use the parser as a
+ front-end for tools to be developed on top of it.\cite{Baumann}
 \end{quotation}
 \end{frame}
 
@@ -174,7 +175,60 @@ telno = areacode space exchange ``-'' suffix;
 \end{minted}
 \end{frame}
 
-\begin{frame}{Constructing Simple Non-terminals}
+\begin{frame}[fragile]{What about Regular Expressions?}
+
+\begin{minted}{clojure}
+(def telno-pattern "\\((\\d{3})\\) (\\d{3})-(\\d{4})")
+
+ (defn telno-regex [input]
+  (let [result (re-find (re-pattern telno-pattern) input)]
+    (if result
+      (let [areacode (nth result 1)
+            exchange (nth result 2)
+            suffix (nth result 3)]
+        (struct telno-s areacode exchange suffix))
+      nil)))
+\end{minted}
+\end{frame}
+
+\begin{frame}{fnparse primitives}
+
+\begin{table}
+\begin{tabularx}{\linewidth}{|l|l|X|X|}
+\hline
+  \emph{Name} & \emph{EBNF}  & \emph{Description} & \emph{Example} \\ \hline
+  alt & \textbar & Creates a rule that is true if any of the alternates
+  are true. & (def alpha (alt lower upper)) \\ \hline
+  opt & [...] &  A rule that is satisfied if it is present or
+  absent. & (def trailing-whitespace (opt whitespace)) \\ \hline
+  rep* and rep+ & {...} &  A rule for subrules that repeat. &
+  \texttt{(def statements (conc statement (rep* (conc ws statement))))} \\ \hline
+\end{tabularx}
+\end{table}
+
+\end{frame}
+\begin{frame}{fnparse primitives (cont)}
+
+\begin{table}
+\begin{tabularx}{\linewidth}{|l|l|X|X|}
+\hline
+  \emph{Name} & \emph{EBNF}  & \emph{Description} & \emph{Example} \\
+  \hline
+  lit & ``x'' & Define a rule for a literal, character value. &
+  \texttt{(def blank (alt (lit \textbackslash space) (lit
+    \textbackslash tab)))} \\ \hline
+  conc & , & Creates a rule by concatenating rules. &
+ \texttt{(def camelback (conc upper (rep* alpha)))} \\ \hline
+  lit-alt-seq & ``x'', ``x'' & Creates a parser for alternatives
+  derived from a specified sequence. &
+  \texttt{(def digits (lit-alt-seq ``0123456789''))} \\
+  \hline
+\end{tabularx}
+\end{table}
+
+\end{frame}
+
+\begin{frame}{Constructing Non-terminals}
 \begin{itemize}
 \item white space
 \item identifiers
@@ -185,6 +239,9 @@ telno = areacode space exchange ``-'' suffix;
 \end{frame}
 
 \begin{frame}[fragile]{Posix Character Classes}
+
+ Posix defines character classes for blank, lower, upper,
+ xdigit, alpha, alnum, etc.
 
  Earlier we defined ``digit''  with \texttt{lit-alt-seq}.
 
@@ -199,7 +256,8 @@ succinct:
 (def digit (term #(contains? (test-set [\0 \9]) %)))
 \end{minted}
 
-Now we need definitions for lower, upper, alpha and word!
+Now we need definitions for more like xdigit, lower, upper, alpha and
+word!
 \end{frame}
 
 \begin{frame}[fragile]{Posix Character Classes}
@@ -223,20 +281,34 @@ Now we need definitions for lower, upper, alpha and word!
 
 \end{frame}
 
-\begin{frame}[fragile]{What about Regular Expressions?}
+\begin{frame}[fragile]{Protobuf fragment}
 
-\begin{minted}{clojure}
-(def telno-pattern "\\((\\d{3})\\) (\\d{3})-(\\d{4})")
+  Protobuf is an IDL and compiler for machine-to-machine data
+  interchange.
 
- (defn telno-regex [input]
-  (let [result (re-find (re-pattern telno-pattern) input)]
-    (if result
-      (let [areacode (nth result 1)
-            exchange (nth result 2)
-            suffix (nth result 3)]
-        (struct telno-s areacode exchange suffix))
-      nil)))
+\begin{minted}{protobuf}
+ message SearchResponse {
+  message Result {
+    required string url = 1;
+    optional string title = 2;
+    repeated string snippets = 3;
+  }
+  repeated Result result = 1;
+}
 \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Protobuf identifer}
+
+\begin{minted}{sh}
+ identifier = alpha | ``_'', { word }
+\end{minted}
+
+\begin{minted}{sh}
+ (def protobuf-identifier (semantics (conc alpha (rep* alpha-plus))
+                                (fn [result] (apply str (flatten result)))))
+\end{minted}
+
 \end{frame}
 
 \begin{frame}[fragile]{HTML-TEMPLATE: a Case Study}

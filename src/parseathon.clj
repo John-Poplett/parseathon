@@ -2,20 +2,32 @@
   [:use name.choi.joshua.fnparse clojure.algo.monads
    [slingshot.slingshot :only [throw+]]])
 
-;; Derived from version in Brehaut's fnparse article
+(def ^:dynamic *parser-state-constructor* #(assoc {} :remainder %))
+
+;;
+;; Derived from version in Andrew Brehaut's fnparse article
+;; This version has overrides to allow it to work with custom
+;; parser state structures. It is possible to supply it with
+;; a custom constructor for the parser state and to override
+;; the *remainder-accessor* var by passing in an appropriate
+;; map.
+;;
 (defn run-p
   "Utility function to execute a given parser with the given
   input. Good for REPL experiments."
-  [parser input]
-  (let [result (rule-match parser
-                           #(prn "fail:" %&)
-                           #(prn "incomplete:" %&)
-                           {:remainder input})]
-    result))
+  ([parser input]
+     (run-p parser input {:constructor *parser-state-constructor* :accessor *remainder-accessor*}))
+  ([parser input {:keys [constructor accessor]}]
+     (binding [*remainder-accessor* accessor]
+              (let [result (rule-match parser
+                                       #(prn "fail:" %&)
+                                       #(prn "incomplete:" %&)
+                                       (constructor input))]
+                result))))
 
 ;;
 ;; Original source now converted to a macro. This is a case where the runtime efficiency of
-;; a macro is justified. Otherwise, this code executes would execute each time you parse
+;; a macro is justified. Otherwise, this code executes each time you parse
 ;; a single character.
 ;;
 ;; (defn test-set [& args]

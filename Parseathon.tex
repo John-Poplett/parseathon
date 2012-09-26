@@ -33,18 +33,27 @@ then spend some time working with it interactively.
 \begin{frame}{Agenda}
 
 \begin{itemize}
+\item Play prep
 \item Why parser combinators?
+\item Introduction to fnparse
 \item Parsing digits
 \item Parsing telephone numbers
-\item Introduction to fnparse
 \item Look at some fnparse function parsers
 \item REPL playtime: executing simple parsers
 \item Recursive example with Protobuf
 \item REPL playtime
-\item Error handling with fnparse
-\item Parser output
-\item Example: htmltemplate
-\item REPL playtime
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}{Setup your computer}
+
+Code examples are available at:
+
+\begin{itemize}
+\item \texttt{https://github.com/John-Poplett/parseathon}
+\item \texttt{https://github.com/John-Poplett/fnparse}
+\item \texttt{https://github.com/John-Poplett/html-template}
 \end{itemize}
 
 \end{frame}
@@ -137,8 +146,9 @@ telno = areacode space exchange ``-'' suffix;
   digit (lit-alt-seq "0123456789"))
 
 (defmacro ndigits
-  "Creates a parser for the specified number of digits. The
-  parser returns a string of the matching digits on success."
+  "Creates a parser for the specified number of digits.
+  The parser returns a string of the matching digits
+  on success."
   [n] `(semantics (rep= ~n digit) #(apply str %)))
 \end{minted}
 \end{frame}
@@ -147,10 +157,13 @@ telno = areacode space exchange ``-'' suffix;
 \begin{minted}{clojure}
 (defstruct telno-s :areacode :exchange :suffix)
 
-(def areacode (complex [_ (lit \()
-                                      result (ndigits 3)
-                                      _ (lit \))]
-                                    result))
+(def #^{:doc "Define a parser for area-codes"}
+  areacode
+  (complex
+   [_ (lit \()
+    result (ndigits 3)
+    _ (lit \))]
+   result))
 
 (def exchange (ndigits 3))
 (def suffix (ndigits 4))
@@ -304,33 +317,49 @@ word!
  identifier = alpha | ``_'', { word }
 \end{minted}
 
-\begin{minted}{sh}
- (def protobuf-identifier (semantics (conc alpha (rep* alpha-plus))
-                                (fn [result] (apply str (flatten result)))))
+\begin{minted}{clojure}
+ (def protobuf-identifier
+   (semantics (conc alpha (rep* alpha-plus))
+      (fn [result] (apply str (flatten result)))))
 \end{minted}
 
 \end{frame}
 
-\begin{frame}[fragile]{HTML-TEMPLATE: a Case Study}
-HTML-TEMPLATE is template language. Like many template engines, it
-generates HTML or XML dynamically from a template.
+\begin{frame}[fragile]{Recursion in fnparse}
+\begin{minted}{clojure}
+(def type-specifiers
+  (conc type-specifier (rep* (conc ws type-specifier))))
 
-\begin{minted}{html}
-<table border=1>
-  <!-- TMPL_LOOP rows -->
-  <tr>
-     <!-- TMPL_LOOP cols -->
-     <!-- TMPL_IF colorful-style -->
-     <td align="right" bgcolor="pink"><!-- TMPL_VAR content --></td>
-     <!-- TMPL_ELSE -->
-     <td align="right" ><!-- TMPL_VAR content --></td>
-     <!-- /TMPL_IF -->
-     <!-- /TMPL_LOOP -->
- </tr>
- <!-- /TMPL_LOOP -->
-</table>
+(declare message-body)
+
+(def message
+  (complex
+   [_ (lit-conc-seq "message")
+    _ ws
+    _ protobuf-identifier
+    _ ws
+    body message-body]
+   body))
+
 \end{minted}
+\end{frame}
 
+\begin{frame}[fragile]{Recursion in fnparse}
+\begin{minted}{clojure}
+(def message-body-element
+  (alt message type-specifier))
+
+(def message-body
+  (complex
+   [_ (lit \{)
+    _ ws
+    body (conc
+          message-body-element
+          (rep* (conc ws message-body-element)))
+    _ ws
+    _ (lit \})]
+   body))
+\end{minted}
 \end{frame}
 
 \begin{frame}{References}

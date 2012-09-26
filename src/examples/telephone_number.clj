@@ -5,10 +5,12 @@
 (defstruct telno-s :areacode :exchange :suffix)
 
 (def #^{:doc "Define a parser for area-codes"}
-  areacode (complex [_ (lit \()
-                     result (ndigits 3)
-                     _ (lit \))]
-                    result))
+  areacode
+  (complex
+   [_ (lit \()
+    result (ndigits 3)
+    _ (lit \))]
+   result))
 
 (def exchange (ndigits 3))
 (def suffix (ndigits 4))

@@ -63,19 +63,25 @@
 
 (declare message-body)
 
-(def message (complex [_ (lit-conc-seq "message")
-                       _ ws
-                       _ protobuf-identifier
-                       _ ws
-                       body message-body]
-                      body))
+(def message
+  (complex
+   [_ (lit-conc-seq "message")
+    _ ws
+    _ protobuf-identifier
+    _ ws
+    body message-body]
+   body))
 
 (def message-body-element
   (alt message type-specifier))
 
-(def message-body (complex [_ (lit \{)
-                       _ ws
-                       body (conc message-body-element (rep* (conc ws message-body-element)))
-                       _ ws
-                       _ (lit \})]
-                      body))
+(def message-body
+  (complex
+   [_ (lit \{)
+    _ ws
+    body (conc
+          message-body-element
+          (rep* (conc ws message-body-element)))
+    _ ws
+    _ (lit \})]
+   body))

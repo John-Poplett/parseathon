@@ -21,17 +21,12 @@
 \end{frame}
 
 \begin{frame}{Introduction}
- The best part about this talk is it's name. Hopefully, you like it. If
-you don't like it, you may want to leave now because it's all downhill
-from here.
-
 fnparse, is a library for writing parsers in Clojure. The library
 belongs to the class of parsing techniques known as parser combinators.
 
 The goal of my talk today is to introduce you to fnparse (and
 indirectly to parser combinators), show you how to use fnparse and
-then spend some time working with it interactively to get in a little
-"kinetic" learning.
+then spend some time working with it interactively.
 \end{frame}
 
 \begin{frame}{Agenda}
@@ -106,24 +101,23 @@ front-end for tools to be developed on top of it.\cite{Baumann}
 \end{frame}
 
 \begin{frame}{Introduction to fnparse}
-  fnparse was written by Joshua Choi. A valuable text for
+  fnparse \cite{Choi} was written by Joshua Choi. A valuable text for
   understanding the library is written by Andrew Breihaut called
   \emph{Start Parsing in Clojure: fnparse} \cite{Breihaut}.  If this
   talk piques your interest in fnparse, read the article and also
   study, as he suggest's, the JSON parser example provided with
   fnparse.
 
-  Joshua Choi the original author of fnparse no longer maintains it
-  and was written with Clojure 1.2. I have created a fork of the
-  original source on github and updated it for compatibility with 1.3
-  and 1.4.
+  Joshua Choi the original author of fnparse no longer maintains it. I
+  have created a fork of the original source on github and updated it
+  for compatibility with Clojure 1.3 and 1.4.
 \end{frame}
 
 %
 % fragile key word required to use minted in beamer frames
 % See http://code.google.com/p/minted/issues/detail?id=40
 %
-\begin{frame}[fragile]{Phone Number \ac{EBNF}}
+\begin{frame}[fragile]{Phone Number in \ac{EBNF}}
 \begin{minted}{sh}
 digit = ``0'', ``1'', ``2'', ``3'', ``4'', ``5'',
             ``6'', ``7'', ``8'', ``9'' ;
@@ -159,22 +153,83 @@ telno = areacode space exchange ``-'' suffix;
 
 (def exchange (ndigits 3))
 (def suffix (ndigits 4))
+(def space (lit \space))
+(def hyphen (lit \-))
 
-(def telno
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Phone Number Parser (cont)}
+\begin{minted}{clojure}
+
+(def #^{:doc "A complete parser for a telephone-number."}
+  telno
   (complex [areacode areacode
-            _ (lit \space)
+            _ space
             exchange exchange
-            _ (lit \-)
+            _ hyphen
             suffix suffix]
            (struct telno-s areacode exchange suffix)))
+
 \end{minted}
+\end{frame}
+
+\begin{frame}{Constructing Simple Non-terminals}
+\begin{itemize}
+\item white space
+\item identifiers
+\item keywords
+\item numeric representations (e.g. hex values)
+\item Posix character classes (digit, alpha, word, upper, .etc)
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Posix Character Classes}
+
+ Earlier we defined ``digit''  with \texttt{lit-alt-seq}.
+
+\begin{minted}{clojure}
+def digit (lit-alt-seq "0123456789"))
+\end{minted}
+
+We can use a utility macro, ``test-set'' to make this more
+succinct:
+
+\begin{minted}{clojure}
+(def digit (term #(contains? (test-set [\0 \9]) %)))
+\end{minted}
+
+Now we need definitions for lower, upper, alpha and word!
+\end{frame}
+
+\begin{frame}[fragile]{Posix Character Classes}
+
+% Here is an example set of complete definitions:
+
+\begin{minted}{clojure}
+(def
+  #^{:doc "Defines a parser that succeeds when
+     the input matches a single digit."}
+  digit (term #(contains? (test-set [\0 \9]) %)))
+
+(def blank (alt (lit \space) (lit \tab)))
+(def lower (term #(contains? (test-set [\a \z]) %)))
+(def upper (term #(contains? (test-set [\A \Z]) %)))
+(def xdigit (term #(contains? (test-set [\a \f] [\A \F] [\0 \9]) %)))
+(def alpha (alt lower upper))
+(def alnum (alt alpha digit))
+(def word (alt alnum (lit \_)))
+\end{minted}
+
 \end{frame}
 
 \begin{frame}[fragile]{What about Regular Expressions?}
 
 \begin{minted}{clojure}
-(defn telno-regex [input]
-  (let [result (re-find (re-pattern "\\((\\d\\d\\d)\\) (\\d{3,3})-(\\d{4,4})") input)]
+(def telno-pattern "\\((\\d{3})\\) (\\d{3})-(\\d{4})")
+
+ (defn telno-regex [input]
+  (let [result (re-find (re-pattern telno-pattern) input)]
     (if result
       (let [areacode (nth result 1)
             exchange (nth result 2)
@@ -184,40 +239,31 @@ telno = areacode space exchange ``-'' suffix;
 \end{minted}
 \end{frame}
 
-\begin{frame}{What are Monads?}
+\begin{frame}[fragile]{HTML-TEMPLATE: a Case Study}
+HTML-TEMPLATE is template language. Like many template engines, it
+generates HTML or XML dynamically from a template.
 
-  In the context of functional programming, monads are a cohesive
-  realization of the following three abstractions:
-
-  \begin{itemize}
-
-\item m-bind
-\item m-result
-\item m-value
-\end{itemize}
-
-\end{frame}
-
-\begin{frame}{What are Monadic Parser Combinators?}
-
-Why parser combinators that use monads, of course!
-
-\end{frame}
-
-\begin{frame}{Miscellaneous}
-
-  \ac{AST}s
-  \ac{BNF}
+\begin{minted}{html}
+<table border=1>
+  <!-- TMPL_LOOP rows -->
+  <tr>
+     <!-- TMPL_LOOP cols -->
+     <!-- TMPL_IF colorful-style -->
+     <td align="right" bgcolor="pink"><!-- TMPL_VAR content --></td>
+     <!-- TMPL_ELSE -->
+     <td align="right" ><!-- TMPL_VAR content --></td>
+     <!-- /TMPL_IF -->
+     <!-- /TMPL_LOOP -->
+ </tr>
+ <!-- /TMPL_LOOP -->
+</table>
+\end{minted}
 
 \end{frame}
 
 \begin{frame}{References}
 
 \begin{thebibliography}{9}
-
-\bibitem{Breihaut} Andrew Breihaut,
-\href{http://brehaut.net/blog/2011/fnparse_introduction}{\emph{Start
-    Parsing in Clojure: fnparse}}. February 2011.
 
 \bibitem{Baumann} Peter Baumann et al,
 \emph{Using Functional Parsing to Achieve Quality in Software
@@ -227,6 +273,13 @@ Institute fur Informatik der Universitat Zurich.
 \bibitem{Spiewak} Daniel Spiewak,
 \href{http://www.codecommit.com/blog/scala/the-magic-behind-parser-combinators}{\emph{The
 Magic Behind Parser Combinators}}, www.codecommit.com (2009).
+
+\bibitem{Choi} Joshua Choi,
+  \href{https://github.com/joshua-choi/fnparse/wiki/Reference-of-FnParse-2}{\emph{fnparse Reference}}.
+
+\bibitem{Breihaut} Andrew Breihaut,
+\href{http://brehaut.net/blog/2011/fnparse_introduction}{\emph{Start
+    Parsing in Clojure: fnparse}}. February 2011.
 
 \bibitem{Duey} Jim Duey,
 \href{http://www.intensivesystems.net/tutorials/monads_101.html}{\emph{Monads in Clojure}},
@@ -239,18 +292,14 @@ of Nottingham (1996).
 \href{https://docs.google.com/present/view?id=0Ae6JSEqM3Qz6ZDk0bmd3d18yODRmejZ2N21kdw}{\emph{libphonenumber:
     A Deeper Look}}, Google (2010).
 
-\bibitem{Simpson} H. Simpson, \emph{Proof of the Riemann
-Hypothesis},  preprint (2003), available at
-\url{http://www.math.drofnats.edu/riemann.ps}.
-
 \end{thebibliography}
 
 \end{frame}
 
 \begin{frame}{Acronyms}
-  \begin{acronym}[BNF]
+  \begin{acronym}[EBNF]
   \acro{AST}{Abstract syntax tree}
-  \acro{BNF}{Backus-Naur Form}
+  \acro{EBNF}{Extended Backus-Naur Form}
   \acro{DSL}{Domain specific language}
   \end{acronym}
 \end{frame}

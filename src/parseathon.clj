@@ -13,16 +13,45 @@
                            {:remainder input})]
     result))
 
-(defn test-set [& args]
-  (set (mapcat (fn [value]
+;;
+;; Original source now converted to a macro. This is a case where the runtime efficiency of
+;; a macro is justified. Otherwise, this code executes would execute each time you parse
+;; a single character.
+;;
+;; (defn test-set [& args]
+;;   (set (mapcat (fn [value]
+;;                  (cond (sequential? value)
+;;                        (map char (range (int (first value)) (inc (int (second value)))))
+;;                        (char? value) [value])) args)))
+
+(defmacro test-set [& args]
+  "From args generate a set that can be used with the idiom
+  '(def <non-terminal> (term #(contains? (test-set <args>) %)))'
+  args can be either ranges specified by a two-value vector or
+  indivdual characters."
+  (let [mapper (fn [value]
                  (cond (sequential? value)
                        (map char (range (int (first value)) (inc (int (second value)))))
-                       (char? value) [value])) args)))
+                       (char? value) [value]))
+        result# (set (mapcat mapper args))]
+    `(do ~result#)))
 
+;;
+;; Define some character classes that share meanings
+;; with the Posix character classes.
+;;
 (def
   #^{:doc "Defines a parser that succeeds when
      the input matches a single digit."}
-  digit (lit-alt-seq "0123456789"))
+  digit (term #(contains? (test-set [\0 \9]) %)))
+
+(def blank (alt (lit \space) (lit \tab)))
+(def lower (term #(contains? (test-set [\a \z]) %)))
+(def upper (term #(contains? (test-set [\A \Z]) %)))
+(def xdigit (term #(contains? (test-set [\a \f] [\A \F] [\0 \9]) %)))
+(def alpha (alt lower upper))
+(def alnum (alt alpha digit))
+(def word (alt alnum (lit \_)))
 
 (defmacro ndigits
   "Creates a parser for the specified number of digits. The

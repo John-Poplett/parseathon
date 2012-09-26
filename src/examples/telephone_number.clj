@@ -12,25 +12,23 @@
 
 (def exchange (ndigits 3))
 (def suffix (ndigits 4))
+(def space (lit \space))
+(def hyphen (lit \-))
 
 (def #^{:doc "A complete parser for a telephone-number."}
   telno
   (complex [areacode areacode
-            _ (lit \space)
+            _ space
             exchange exchange
-            _ (lit \-)
+            _ hyphen
             suffix suffix]
            (struct telno-s areacode exchange suffix)))
 
-
-;; (defn parse-tmpl-var [data]
-;;   (let [result (re-find (re-pattern "^<!--\\s+TMPL_VAR\\s+([a-z][a-z0-9]*)\\s+-->") data)]
-;;     (if result
-;;       [ [ :tmpl-var (keyword (second result)) ], (subs data (count (first result))) ]
-;;       nil)))
+(def telno-pattern "\\((\\d{3})\\) (\\d{3})-(\\d{4})")
 
 (defn telno-regex [input]
-  (let [result (re-find (re-pattern "\\((\\d\\d\\d)\\) (\\d{3,3})-(\\d{4,4})") input)]
+  "Demonstration of a telno parser using plain-vanilla regular expressions."
+  (let [result (re-find (re-pattern telno-pattern) input)]
     (if result
       (let [areacode (nth result 1)
             exchange (nth result 2)
